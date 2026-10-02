@@ -6,7 +6,7 @@ pipeline {
         CONTAINER_NAME = 'cicd-ops-dashboard'
         APP_PORT = '8080'
         APP_ENV = 'production'
-        APP_VERSION = '1.0.0'
+        APP_VERSION = '1.0.1'
     }
 
     stages {
