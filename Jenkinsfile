@@ -52,6 +52,7 @@ pipeline {
                     docker run -d \
                       --name ${CONTAINER_NAME} \
                       --restart unless-stopped \
+                      --network cicd-network \
                       -p ${APP_PORT}:8080 \
                       -e APP_ENV=${APP_ENV} \
                       -e APP_VERSION=${APP_VERSION} \
@@ -95,12 +96,12 @@ pipeline {
 
                 sh '''
                     curl --fail --silent \
-                      http://host.docker.internal:${APP_PORT}/health
+                      http://${CONTAINER_NAME}:8080/health
 
                     echo
 
                     curl --fail --silent \
-                      http://host.docker.internal:${APP_PORT}/api/status
+                      http://${CONTAINER_NAME}:8080/api/status
 
                     echo
                 '''
