@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevOps Operations Dashboard</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<div class="container">
+
+    <header>
+        <div>
+            <p class="eyebrow">NODE01 · CI/CD PLATFORM</p>
+            <h1>DevOps Operations Dashboard</h1>
+            <p class="subtitle">
+                Runtime health, system metrics and automated deployment metadata.
+            </p>
+        </div>
+        <div class="health">
+            <span class="dot"></span>
+            <span id="health-status">Checking...</span>
+        </div>
+    </header>
+
+    <section>
+        <h2>Deployment</h2>
+
+        <div class="grid">
+            <div class="card">
+                <span>Environment</span>
+                <strong id="environment">—</strong>
+            </div>
+
+            <div class="card">
+                <span>Version</span>
+                <strong id="version">—</strong>
+            </div>
+
+            <div class="card">
+                <span>Build</span>
+                <strong id="build">—</strong>
+            </div>
+
+            <div class="card">
+                <span>Deployed by</span>
+                <strong id="deployed-by">—</strong>
+            </div>
+        </div>
+    </section>
+
+    <section>
+        <h2>Runtime</h2>
+
+        <div class="grid">
+            <div class="card">
+                <span>Hostname</span>
+                <strong id="hostname">—</strong>
+            </div>
+
+            <div class="card">
+                <span>Platform</span>
+                <strong id="platform">—</strong>
+            </div>
+
+            <div class="card">
+                <span>CPU cores</span>
+                <strong id="cpu">—</strong>
+            </div>
+
+            <div class="card">
+                <span>Memory</span>
+                <strong id="memory">—</strong>
+            </div>
+        </div>
+    </section>
+
+    <section class="pipeline">
+        <h2>Deployment Pipeline</h2>
+
+        <div class="pipeline-flow">
+            <div>Checkout</div>
+            <b>→</b>
+            <div>Test</div>
+            <b>→</b>
+            <div>Build</div>
+            <b>→</b>
+            <div>Containerise</div>
+            <b>→</b>
+            <div>Deploy</div>
+            <b>→</b>
+            <div>Verify</div>
+        </div>
+    </section>
+
+    <footer>
+        <span>Commit: <code id="commit">—</code></span>
+        <span>Python <code id="python">—</code></span>
+        <span>Uptime: <code id="uptime">—</code></span>
+    </footer>
+
+</div>
+
+<script>
+async function refreshDashboard() {
+    try {
+        const [healthResponse, statusResponse, systemResponse] =
+            await Promise.all([
+                fetch('/health'),
+                fetch('/api/status'),
+                fetch('/api/system')
+            ]);
+
+        const health = await healthResponse.json();
+        const status = await statusResponse.json();
+        const system = await systemResponse.json();
+
+        document.getElementById('health-status').textContent =
+            health.status === 'healthy' ? 'Healthy' : health.status;
+
+        document.getElementById('environment').textContent =
+            status.deployment.environment;
+
+        document.getElementById('version').textContent =
+            status.deployment.version;
+
+        document.getElementById('build').textContent =
+            '#' + status.deployment.build_number;
+
+        document.getElementById('deployed-by').textContent =
+            status.deployment.deployed_by;
+
+        document.getElementById('commit').textContent =
+            status.deployment.git_commit.substring(0, 8);
+
+        document.getElementById('hostname').textContent =
+            system.hostname;
+
+        document.getElementById('platform').textContent =
+            system.platform;
+
+        document.getElementById('cpu').textContent =
+            system.cpu_cores;
+
+        document.getElementById('memory').textContent =
+            system.memory_used_mb + ' MB';
+
+        document.getElementById('python').textContent =
+            system.python_version;
+
+        document.getElementById('uptime').textContent =
+            Math.floor(system.uptime_seconds) + 's';
+
+    } catch (error) {
+        document.getElementById('health-status').textContent =
+            'Unavailable';
+    }
+}
+
+refreshDashboard();
+setInterval(refreshDashboard, 5000);
+</script>
+
+</body>
+</html>
