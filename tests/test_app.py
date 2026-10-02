@@ -62,3 +62,26 @@ def test_version_metadata():
     assert "build_number" in data
     assert "git_commit" in data
     assert "deployed_by" in data
+
+
+def test_secure_endpoint_rejects_missing_token(monkeypatch):
+    monkeypatch.setenv("DASHBOARD_API_TOKEN", "test-token")
+
+    client = app.test_client()
+    response = client.get("/api/secure")
+
+    assert response.status_code == 401
+
+
+def test_secure_endpoint_accepts_valid_token(monkeypatch):
+    monkeypatch.setenv("DASHBOARD_API_TOKEN", "test-token")
+
+    client = app.test_client()
+    response = client.get(
+        "/api/secure",
+        headers={"X-API-Key": "test-token"}
+    )
+
+    assert response.status_code == 200
+    assert response.get_json()["status"] == "authorized"
+
