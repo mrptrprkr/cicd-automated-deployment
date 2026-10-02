@@ -44,23 +44,31 @@ pipeline {
 
         stage('Deploy') {
             steps {
-                echo 'Deploying application...'
+                echo 'Deploying application with protected credentials...'
 
-                sh '''
-                    docker rm -f ${CONTAINER_NAME} 2>/dev/null || true
+                withCredentials([
+                    string(
+                        credentialsId: 'dashboard-api-token',
+                        variable: 'DASHBOARD_API_TOKEN'
+                    )
+                ]) {
+                    sh '''
+                        docker rm -f ${CONTAINER_NAME} 2>/dev/null || true
 
-                    docker run -d \
-                      --name ${CONTAINER_NAME} \
-                      --restart unless-stopped \
-                      --network cicd-network \
-                      -p ${APP_PORT}:8080 \
-                      -e APP_ENV=${APP_ENV} \
-                      -e APP_VERSION=${APP_VERSION} \
-                      -e BUILD_NUMBER=${BUILD_NUMBER} \
-                      -e GIT_COMMIT=${GIT_COMMIT} \
-                      -e DEPLOYED_BY=Jenkins \
-                      ${IMAGE_NAME}:${BUILD_NUMBER}
-                '''
+                        docker run -d \
+                          --name ${CONTAINER_NAME} \
+                          --restart unless-stopped \
+                          --network cicd-network \
+                          -p ${APP_PORT}:8080 \
+                          -e APP_ENV=${APP_ENV} \
+                          -e APP_VERSION=${APP_VERSION} \
+                          -e BUILD_NUMBER=${BUILD_NUMBER} \
+                          -e GIT_COMMIT=${GIT_COMMIT} \
+                          -e DEPLOYED_BY=Jenkins \
+                          -e DASHBOARD_API_TOKEN="${DASHBOARD_API_TOKEN}" \
+                          ${IMAGE_NAME}:${BUILD_NUMBER}
+                    '''
+                }
             }
         }
 
@@ -92,19 +100,30 @@ pipeline {
 
         stage('Smoke Test') {
             steps {
-                echo 'Running post-deployment smoke tests...'
+                echo 'Running authenticated post-deployment smoke tests...'
 
-                sh '''
-                    curl --fail --silent \
-                      http://${CONTAINER_NAME}:8080/health
+                withCredentials([
+                    string(
+                        credentialsId: 'dashboard-api-token',
+                        variable: 'DASHBOARD_API_TOKEN'
+                    )
+                ]) {
+                    sh '''
+                        curl --fail --silent \
+                          http://${CONTAINER_NAME}:8080/health
+                        echo
 
-                    echo
+                        curl --fail --silent \
+                          http://${CONTAINER_NAME}:8080/api/status
+                        echo
 
-                    curl --fail --silent \
-                      http://${CONTAINER_NAME}:8080/api/status
-
-                    echo
-                '''
+                        set +x
+                        curl --fail --silent \
+                          -H "X-API-Key: ${DASHBOARD_API_TOKEN}" \
+                          http://${CONTAINER_NAME}:8080/api/secure
+                        echo
+                    '''
+                }
             }
         }
     }
